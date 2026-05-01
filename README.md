@@ -1,11 +1,13 @@
-
-
-```markdown
-# README - Atelier 3 : Django ecommerce project
+# README - Atelier 3 : Authentification avec Django
 
 ## 📋 Description
 
-Ce projet est un site e-commerce développé avec **Django**, auquel a été ajouté un **panier d'achat** et la fonctionnalité de **changement de mot de passe** dans le cadre de l'Atelier 4 du module Développement Web avec Python.
+Ce projet est un site e-commerce développé avec **Django**, auquel a été ajouté un **système d'authentification complet** dans le cadre de l'Atelier 3 du module Développement Web avec Python.
+
+L'application `accounts` permet aux utilisateurs de :
+- S'inscrire avec un formulaire personnalisé
+- Se connecter / se déconnecter
+- Accéder à une page profil protégée
 
 ---
 
@@ -13,12 +15,13 @@ Ce projet est un site e-commerce développé avec **Django**, auquel a été ajo
 
 | Objectif | Statut |
 |----------|--------|
-| Ajouter une application `cart` | ✅ |
-| Créer les modèles `Cart` et `CartItem` | ✅ |
-| Ajouter / retirer / modifier des articles dans le panier | ✅ |
-| Afficher le nombre d'articles dans la navbar | ✅ |
-| Permettre le changement de mot de passe | ✅ |
-| Réutiliser les vues d'authentification intégrées de Django | ✅ |
+| Ajouter une application `accounts` | ✅ |
+| Utiliser le système d'authentification intégré de Django | ✅ |
+| Créer une page d'inscription avec formulaire personnalisé | ✅ |
+| Créer une page de connexion | ✅ |
+| Gérer la déconnexion | ✅ |
+| Créer une page profil protégée (`@login_required`) | ✅ |
+| Réutiliser le template `base.html` existant | ✅ |
 
 ---
 
@@ -37,27 +40,15 @@ ecommerce/
 │   │   └── product_detail.html
 │   ├── urls.py
 │   └── views.py
-├── accounts/
+├── accounts/               ← NOUVELLE APPLICATION
 │   ├── templates/
 │   │   └── registration/
 │   │       ├── login.html
 │   │       ├── signup.html
-│   │       ├── profile.html
-│   │       ├── password_change_form.html    ← NOUVEAU
-│   │       └── password_change_done.html    ← NOUVEAU
+│   │       └── profile.html
 │   ├── forms.py
 │   ├── urls.py
 │   └── views.py
-├── cart/                       ← NOUVELLE APPLICATION
-│   ├── migrations/
-│   ├── templates/
-│   │   └── cart/
-│   │       └── cart_detail.html
-│   ├── models.py
-│   ├── views.py
-│   ├── urls.py
-│   ├── context_processors.py
-│   └── apps.py
 ├── db.sqlite3
 ├── manage.py
 └── myenv/
@@ -84,7 +75,7 @@ source myenv/bin/activate
 
 ### 3. Installer les dépendances
 ```bash
-pip install django pillow psycopg2
+pip install django
 ```
 
 ### 4. Appliquer les migrations
@@ -110,22 +101,19 @@ python manage.py runserver
 INSTALLED_APPS = [
     ...,
     'products',
-    'accounts',
-    'cart',           # Nouvelle application
+    'accounts',           # Nouvelle application
 ]
 
-TEMPLATES = [{
-    'OPTIONS': {
-        'context_processors': [
-            ...
-            'cart.context_processors.cart_count',  # Badge panier navbar
-        ],
-    },
-}]
+# Redirections d'authentification
+LOGIN_REDIRECT_URL = "profile"      # Après connexion
+LOGOUT_REDIRECT_URL = "product_list" # Après déconnexion
+LOGIN_URL = "login"                  # Page de connexion
 
-LOGIN_REDIRECT_URL = "profile"
-LOGOUT_REDIRECT_URL = "product_list"
-LOGIN_URL = "login"
+# Templates
+TEMPLATES = [{
+    'DIRS': [BASE_DIR / 'accounts' / 'templates'],
+    ...
+}]
 ```
 
 ---
@@ -140,28 +128,20 @@ LOGIN_URL = "login"
 | `/accounts/login/` | Connexion | - |
 | `/accounts/logout/` | Déconnexion | - |
 | `/accounts/profile/` | Profil utilisateur | `@login_required` |
-| `/accounts/password_change/` | Changement de mot de passe | `@login_required` |
-| `/accounts/password_change/done/` | Confirmation changement | `@login_required` |
-| `/cart/` | Voir le panier | `@login_required` |
-| `/cart/add/<id>/` | Ajouter un produit | `@login_required` |
-| `/cart/remove/<id>/` | Retirer un article | `@login_required` |
-| `/cart/update/<id>/` | Modifier la quantité | `@login_required` |
-| `/cart/clear/` | Vider le panier | `@login_required` |
 | `/admin/` | Administration Django | Superutilisateur |
 
 ---
 
-## 🛒 Modèles du panier (`cart/models.py`)
+## 📝 Formulaires personnalisés
 
+### `accounts/forms.py`
 ```python
-class Cart(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    # Un panier par utilisateur
-
-class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
+class RegisterForm(UserCreationForm):
+    email = forms.EmailField(required=True, label="Adresse email")
+    
+    class Meta:
+        model = User
+        fields = ["username", "email", "password1", "password2"]
 ```
 
 ---
@@ -170,10 +150,10 @@ class CartItem(models.Model):
 
 | Notion | Description |
 |--------|-------------|
-| **`@login_required`** | Toutes les vues du panier sont protégées |
-| **`get_or_create`** | Crée automatiquement un panier si l'utilisateur n'en a pas |
-| **Context processor** | Injecte `cart_item_count` dans tous les templates pour le badge navbar |
-| **`password_change`** | Vue intégrée Django, aucune vue custom nécessaire |
+| **`@login_required`** | Décorateur protégeant les vues (redirection automatique si non connecté) |
+| **`{% csrf_token %}`** | Jeton anti-falsification obligatoire dans tout formulaire POST |
+| **Hachage des mots de passe** | Django utilise PBKDF2 (jamais de mots de passe en clair) |
+| **Sessions** | Maintien de l'utilisateur connecté entre les pages |
 
 ---
 
@@ -181,14 +161,13 @@ class CartItem(models.Model):
 
 | URL | Résultat |
 |-----|----------|
-| `/cart/` (connecté) | ✅ OK |
-| `/cart/` (non connecté) | ✅ Redirection vers login |
-| `/cart/add/<id>/` | ✅ OK |
-| `/cart/update/<id>/` | ✅ OK |
-| `/cart/remove/<id>/` | ✅ OK |
-| `/cart/clear/` | ✅ OK |
-| `/accounts/password_change/` | ✅ OK |
-| `/accounts/password_change/done/` | ✅ OK |
+| `/products/` | ✅ OK |
+| `/accounts/signup/` | ✅ OK |
+| `/accounts/login/` | ✅ OK |
+| `/accounts/profile/` (connecté) | ✅ OK |
+| `/accounts/profile/` (non connecté) | ✅ Redirection vers login |
+| `/accounts/logout/` | ✅ OK |
+| `/admin/` | ✅ OK |
 
 ---
 
@@ -196,9 +175,10 @@ class CartItem(models.Model):
 
 | Problème | Solution |
 |----------|----------|
-| `touch` et `&&` non reconnus sur PowerShell | Utilisation de `New-Item` à la place |
-| Badge panier non affiché dans la navbar | Ajout du context processor `cart.context_processors.cart_count` dans `settings.py` |
-| Templates `password_change` non trouvés | Création manuelle de `password_change_form.html` et `password_change_done.html` |
+| `TemplateDoesNotExist` pour `profile.html` | Ajout de `BASE_DIR / 'accounts' / 'templates'` dans `DIRS` |
+| Connexion PostgreSQL refusée | Modification de `pg_hba.conf` en mode `trust` |
+| Erreur `No such file or directory` pour `manage.py` | Navigation au bon niveau du projet avec `cd` |
+| Template `layout.html` vs `base.html` | Adaptation de tous les `{% extends %}` vers `base.html` |
 
 ---
 
@@ -213,9 +193,9 @@ Professeur : Mr. A. BOUSSELHAM
 
 ## 📚 Compétences acquises
 
-- Création d'une application Django avec modèles relationnels
-- Utilisation de `get_or_create` pour la gestion du panier
-- Création d'un context processor personnalisé
-- Utilisation des vues d'authentification intégrées pour le changement de mot de passe
-- Gestion des requêtes POST pour modifier des données
-```
+- Création et intégration d'une application Django
+- Utilisation de `UserCreationForm` personnalisé
+- Protection de vues avec `@login_required`
+- Compréhension du mécanisme de session et de hachage
+- Utilisation des URLs d'authentification intégrées
+- Affichage conditionnel dans les templates (`{% if user.is_authenticated %}`)
