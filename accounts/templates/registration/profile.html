@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Mon profil{% endblock %}
+
+{% block content %}
+<div class="mt-5">
+    <h2>Mon profil</h2>
+    <p>Cette page est protégée. Elle est accessible uniquement aux utilisateurs connectés.</p>
+    <h4>Informations du compte</h4>
+    <ul class="list-group">
+        <li class="list-group-item">
+            Nom d'utilisateur : {{ user.username }}
+        </li>
+        <li class="list-group-item">
+            Email : {{ user.email }}
+        </li>
+        <li class="list-group-item">
+            Staff : {{ user.is_staff }}
+        </li>
+        <li class="list-group-item">
+            Superutilisateur : {{ user.is_superuser }}
+        </li>
+    </ul>
+
+    <a href="{% url 'password_change' %}" class="btn btn-outline-primary mt-3">
+         Changer mon mot de passe
+    </a>
+</div>
+{% endblock %}

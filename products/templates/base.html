@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}E-commerce{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="{% url 'home' %}">E-commerce</a>
+        <div>
+            <a class="nav-link text-white d-inline" href="{% url 'home' %}">Accueil</a>
+            <a class="nav-link text-white d-inline" href="{% url 'product_list' %}">Produits</a>
+            <a class="nav-link text-white d-inline" href="{% url 'category_list' %}">Categories</a>
+            {% if user.is_authenticated %}
+                <a class="nav-link text-white d-inline" href="{% url 'cart_detail' %}">
+                    Panier
+                    {% if cart_item_count > 0 %}
+                        <span class="badge bg-warning text-dark">{{ cart_item_count }}</span>
+                    {% endif %}
+                </a>
+                <a class="nav-link text-white d-inline" href="{% url 'profile' %}">Mon profil</a>
+                <span class="text-white mx-2">Bonjour, {{ user.username }}</span>
+                <form method="post" action="{% url 'logout' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-light btn-sm">Deconnexion</button>
+                </form>
+            {% else %}
+                <a class="nav-link text-white d-inline" href="{% url 'login' %}">Connexion</a>
+                <a class="nav-link text-white d-inline" href="{% url 'signup' %}">Creer un compte</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+<div class="container mt-4">
+    {% block content %}{% endblock %}
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+<h1>{{ product.name }}</h1>
+{% if product.image %}
+<img src="{{ product.image.url }}" width="250" alt="{{ product.name }}">
+{% endif %}
+<p><strong>Description :</strong> {{ product.description }}</p>
+<p><strong>Prix :</strong> {{ product.price }} €</p>
+<p><strong>Stock :</strong> {{ product.stock }}</p>
+<p><strong>Catégorie :</strong> <a href="{% url 'category_detail' product.category.id %}">{{ product.category.name }}</a></p>
+{% if user.is_authenticated %}
+  {% if product.stock > 0 %}
+    <a href="{% url 'add_to_cart' product.id %}" class="btn btn-success mt-2"> Ajouter au panier</a>
+  {% else %}
+    <button class="btn btn-secondary mt-2" disabled>Rupture de stock</button>
+  {% endif %}
+{% else %}
+  <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-outline-primary mt-2">
+    Connectez-vous pour acheter
+  </a>
+{% endif %}
+<a href="{% url 'product_list' %}" class="btn btn-secondary mt-3">Retour aux produits</a>
+{% endblock %}

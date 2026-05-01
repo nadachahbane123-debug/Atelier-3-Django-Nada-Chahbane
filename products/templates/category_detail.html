@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{{ category.name }}{% endblock %}
+{% block content %}
+<h1>Produits dans la catégorie : {{ category.name }}</h1>
+<ul class="list-group mt-3">
+    {% for product in products %}
+    <li class="list-group-item">
+        <a href="{% url 'product_detail' product.pk %}">{{ product.name }}</a>
+    </li>
+    {% empty %}
+    <li class="list-group-item">Aucun produit dans cette catégorie.</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'category_list' %}" class="btn btn-secondary mt-3">Retour aux catégories</a>
+{% endblock %}

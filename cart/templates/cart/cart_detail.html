@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Mon panier{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"> Mon panier</h2>
+
+{% if cart.items.all %}
+  <table class="table table-bordered align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Produit</th><th>Prix</th><th>Quantité</th><th>Sous-total</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in cart.items.all %}
+      <tr>
+        <td><a href="{% url 'product_detail' item.product.id %}">{{ item.product.name }}</a></td>
+        <td>{{ item.product.price }} €</td>
+        <td>
+          <form method="post" action="{% url 'update_cart' item.id %}" class="d-flex gap-2">
+            {% csrf_token %}
+            <input type="number" name="quantity" value="{{ item.quantity }}"
+                   min="0" max="{{ item.product.stock }}" class="form-control form-control-sm" style="width:80px">
+            <button type="submit" class="btn btn-sm btn-outline-primary">Maj</button>
+          </form>
+        </td>
+        <td>{{ item.subtotal }} €</td>
+        <td>
+          <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-outline-danger"
+             onclick="return confirm('Retirer cet article ?')">Supprimer</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3" class="text-end fw-bold">Total :</td>
+        <td colspan="2" class="fw-bold fs-5">{{ cart.total }} €</td>
+      </tr>
+    </tfoot>
+  </table>
+  <div class="d-flex justify-content-between mt-3">
+    <a href="{% url 'clear_cart' %}" class="btn btn-outline-secondary"
+       onclick="return confirm('Vider le panier ?')">🗑 Vider</a>
+    <a href="{% url 'product_list' %}" class="btn btn-primary">Continuer mes achats</a>
+  </div>
+{% else %}
+  <div class="alert alert-info">
+    Votre panier est vide. <a href="{% url 'product_list' %}">Parcourir les produits</a>
+  </div>
+{% endif %}
+{% endblock %}
